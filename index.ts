@@ -1,6 +1,7 @@
 import { loadConfig } from "./src/config";
 import { handleInit } from "./src/commands/init";
 import { handleAdd } from "./src/commands/add";
+import { handleUpdate } from "./src/commands/update";
 import { handleHelp } from "./src/commands/help";
 
 async function main() {
@@ -18,6 +19,10 @@ async function main() {
         process.exit(1);
       }
       await handleAdd(pubkey, process.cwd());
+      break;
+    case "update":
+      const updatePubkey = args[1];
+      await handleUpdate(process.cwd(), updatePubkey);
       break;
     case "help":
     default:

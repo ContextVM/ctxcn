@@ -1,71 +1,45 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
-import { compile } from "json-schema-to-typescript";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, access } from "fs/promises";
 import path from "path";
-import type { JSONSchema } from "json-schema-to-typescript/dist/src/types/JSONSchema";
 import { toPascalCase } from "../utils";
-import { loadConfig } from "../config";
+import { loadConfig, saveConfig } from "../config";
+import { askQuestion, closeReadlineInterface } from "../utils/cli";
+import { generateClientCode } from "../utils/schema";
 import {
   ApplesauceRelayPool,
   NostrClientTransport,
   PrivateKeySigner,
 } from "@contextvm/sdk";
 
-function sanitizeSchema(schema: unknown): object | boolean {
-  // A valid JSON Schema is a boolean or an object.
-  if (typeof schema === "boolean") {
-    return schema;
-  }
-
-  // If it's not an object (e.g., string, null, number, array), it's invalid. Return empty schema.
-  if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
-    return {};
-  }
-
-  // It's an object, so we'll traverse it to remove invalid $refs.
-  function traverse(obj: any): any {
-    if (typeof obj !== "object" || obj === null) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(traverse);
-    }
-
-    const newObj: { [key: string]: any } = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        if (key === "$ref") {
-          const refValue = obj[key];
-          // Only keep internal references.
-          if (typeof refValue === "string" && refValue.startsWith("#")) {
-            newObj[key] = refValue;
-          }
-        } else {
-          newObj[key] = traverse(obj[key]);
-        }
-      }
-    }
-    return newObj;
-  }
-
-  return traverse(schema);
-}
-
-function getTypeShape(fullType: string): string {
-  const match = fullType.match(/=\s*([\s\S]*);/);
-  if (match && match[1]) {
-    const shape = match[1].trim();
-    if (shape === "unknown") {
-      return "{}";
-    }
-    return shape;
-  }
-  return "{}";
-}
-
 export async function handleAdd(pubkey: string, cwd: string) {
+  console.log("🔍 Checking for configuration file...");
+
+  // Check if config file exists
+  const configPath = path.join(cwd, "ctxcn.config.json");
+  try {
+    await access(configPath);
+  } catch (error) {
+    console.error(
+      "❌ Error: Configuration file 'ctxcn.config.json' not found.",
+    );
+    console.error(
+      "Please run 'ctxcn init' first to create a configuration file.",
+    );
+    closeReadlineInterface();
+    process.exit(1);
+  }
+
   const config = await loadConfig(cwd);
+
+  // Check if client is already added
+  if (config.addedClients && config.addedClients.includes(pubkey)) {
+    console.log(`⚠️ Client with pubkey ${pubkey} is already added.`);
+    console.log("Use 'ctxcn update' to refresh the client if needed.");
+    closeReadlineInterface();
+    process.exit(0);
+  }
+
+  console.log(`🔗 Connecting to server ${pubkey}...`);
 
   const client = new Client({
     name: `generator-client`,
@@ -79,153 +53,89 @@ export async function handleAdd(pubkey: string, cwd: string) {
     // isStateless: true,
   });
 
-  await client.connect(transport);
-  const serverDetails = client.getServerVersion();
-  const toolListResult = await client.listTools();
-  await transport.close();
+  try {
+    await client.connect(transport);
+    const serverDetails = client.getServerVersion();
+    const toolListResult = await client.listTools();
+    await transport.close();
+    let serverName = toPascalCase(serverDetails?.name || "UnknownServer");
 
-  const apiMethods: string[] = [];
-  const classMethods: string[] = [];
-  const serverName = toPascalCase(serverDetails?.name || "UnknownServer");
+    // Interactive confirmation
+    console.log(`\n📋 Server Information:`);
+    console.log(`   Name: ${serverDetails?.name || "Unknown"}`);
+    console.log(`   Version: ${serverDetails?.version || "Unknown"}`);
+    console.log(`   Tools found: ${toolListResult.tools.length}`);
 
-  for (const tool of toolListResult.tools) {
-    const toolName = tool.name;
-    const capitalizedToolName = toPascalCase(toolName);
+    console.log(`\n🔧 Available Tools:`);
+    toolListResult.tools.forEach((tool, index) => {
+      console.log(
+        `   ${index + 1}. ${tool.name}: ${tool.description || "No description"}`,
+      );
+    });
 
-    const inputTypeName = `${capitalizedToolName}Input`;
-    const outputTypeName = `${capitalizedToolName}Output`;
+    console.log(`\n⚙️ Client Configuration:`);
+    console.log(`   Client Name: ${serverName}Client`);
+    console.log(`   Output Directory: ${config.source}`);
 
-    const inputSchema = tool.inputSchema as JSONSchema;
-    const outputSchema = tool.outputSchema as JSONSchema;
-
-    const sanitizedInputSchema = sanitizeSchema(inputSchema);
-    const sanitizedOutputSchema = sanitizeSchema(outputSchema);
-
-    let inputType: string;
-    if (typeof sanitizedInputSchema === "boolean") {
-      inputType = `export type ${inputTypeName} = ${
-        sanitizedInputSchema ? "any" : "never"
-      };`;
-    } else {
-      inputType = await compile(sanitizedInputSchema, inputTypeName, {
-        bannerComment: "",
-        additionalProperties: false,
-      });
+    // Allow user to change client name
+    const customName = await askQuestion(
+      "Enter custom client name (leave empty to use default)",
+      "",
+    );
+    if (customName.trim()) {
+      serverName = toPascalCase(customName.trim());
     }
 
-    let outputType: string;
-    if (typeof sanitizedOutputSchema === "boolean") {
-      outputType = `export type ${outputTypeName} = ${
-        sanitizedOutputSchema ? "any" : "never"
-      };`;
-    } else {
-      outputType = await compile(sanitizedOutputSchema, outputTypeName, {
-        bannerComment: "",
-        additionalProperties: false,
-      });
+    // Confirmation options
+    console.log("\n🤔 What would you like to do?");
+    console.log("1. Generate and save the client file");
+    console.log("2. Print the generated code to console only");
+    console.log("3. Cancel");
+
+    const choice = await askQuestion("Choose an option (1-3)", "1");
+
+    if (choice === "3") {
+      console.log("❌ Operation cancelled.");
+      closeReadlineInterface();
+      process.exit(0);
     }
 
-    const inputShape = getTypeShape(inputType);
-    const outputShape = getTypeShape(outputType);
+    const printOnly = choice === "2";
+    const clientName = `${serverName}Client`;
 
-    apiMethods.push(`
-    ${toolName}: {
-      input: ${inputShape};
-      output: ${outputShape};
-    };`);
+    const clientCode = await generateClientCode(
+      pubkey,
+      serverDetails,
+      toolListResult,
+      serverName,
+    );
 
-    classMethods.push(`
-  async ${toolName}(
-    args: ${serverName}API["${toolName}"]["input"]
-  ): Promise<${serverName}API["${toolName}"]["output"]> {
-    return this.call("${toolName}", args);
-  }`);
+    if (printOnly) {
+      console.log("\n📄 Generated Client Code:");
+      console.log("=".repeat(50));
+      console.log(clientCode);
+      console.log("=".repeat(50));
+    } else {
+      const outputDir = path.join(cwd, config.source);
+      await mkdir(outputDir, { recursive: true });
+      const outputPath = path.join(outputDir, `${clientName}.ts`);
+      await writeFile(outputPath, clientCode);
+
+      // Add the client to the config
+      if (!config.addedClients) {
+        config.addedClients = [];
+      }
+      config.addedClients.push(pubkey);
+      await saveConfig(cwd, config);
+
+      console.log(`✅ Generated client for ${serverName} at ${outputPath}`);
+    }
+
+    closeReadlineInterface();
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error connecting to server:", error);
+    closeReadlineInterface();
+    process.exit(1);
   }
-
-  const clientName = `${serverName}Client`;
-
-  const apiType = `export type ${serverName}API = {${apiMethods.join("")}};`;
-
-  const serverType = `
-export type ${serverName} = {
-  [K in keyof ${serverName}API]: (
-    args: ${serverName}API[K]["input"]
-  ) => Promise<${serverName}API[K]["output"]>;
-};
-`;
-
-  const genericCallMethod = `
-  private async call<T extends keyof ${serverName}API>(
-    name: T,
-    args: ${serverName}API[T]["input"]
-  ): Promise<${serverName}API[T]["output"]> {
-    const result = await this.client.callTool({
-      name: name as string,
-      arguments: { ...args },
-    });
-    return result.structuredContent as ${serverName}API[T]["output"];
-  }
-`;
-
-  const clientCode = `
-import { Client } from "@modelcontextprotocol/sdk/client";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import {
-  NostrClientTransport,
-  type NostrTransportOptions,
-  PrivateKeySigner,
-  ApplesauceRelayPool,
-} from "@contextvm/sdk";
-
-${apiType}
-${serverType}
-
-export class ${clientName} implements ${serverName} {
-  static readonly SERVER_PUBKEY = "${pubkey}";
-  private client: Client;
-  private transport: Transport;
-
-  constructor(
-    options: Partial<NostrTransportOptions> & { privateKey?: string; relays?: string[] } = {}
-  ) {
-    this.client = new Client({
-      name: "${clientName}",
-      version: "1.0.0",
-    });
-
-    const {
-      privateKey,
-      relays = ["ws://localhost:10547"],
-      signer = new PrivateKeySigner(privateKey),
-      relayHandler = new ApplesauceRelayPool(relays),
-      ...rest
-    } = options;
-
-    this.transport = new NostrClientTransport({
-      serverPubkey: ${clientName}.SERVER_PUBKEY,
-      signer,
-      relayHandler,
-      ...rest,
-    });
-  }
-
-  async connect(): Promise<void> {
-    await this.client.connect(this.transport);
-  }
-
-  async disconnect(): Promise<void> {
-    await this.transport.close();
-  }
-${genericCallMethod}
-${classMethods.join("\n")}
-}
-`;
-
-  const outputDir = path.join(cwd, config.source);
-  await mkdir(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, `${clientName}.ts`);
-  await writeFile(outputPath, clientCode);
-
-  console.log(`Generated client for ${serverName} at ${outputPath}`);
-  process.exit(0);
 }

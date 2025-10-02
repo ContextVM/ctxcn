@@ -22,7 +22,7 @@ bun install
 
 ## Usage
 
-The `ctxcn` utility provides three main commands: `init`, `add`, and `help`.
+The `ctxcn` utility provides four main commands: `init`, `add`, `update`, and `help`.
 
 ### `init`
 
@@ -38,7 +38,7 @@ This will start the interactive initialization process.
 
 ### `add`
 
-The `add` command generates a TypeScript client from a CVM server's tool definitions. It takes a CVM server's pubkey as an argument.
+The `add` command generates a TypeScript client from a CVM server's tool definitions. It takes a CVM server's pubkey as an argument and provides an interactive experience for configuring the client.
 
 To run the `add` command, execute the following command in your project's root directory:
 
@@ -46,7 +46,38 @@ To run the `add` command, execute the following command in your project's root d
 bun run index.ts add <pubkey>
 ```
 
-This will generate a TypeScript client in the directory specified in your `ctxcn.config.json` file.
+This will:
+
+1. Connect to the specified CVM server
+2. Display server information and available tools
+3. Allow you to customize the client name
+4. Provide options to:
+   - Generate and save the client file
+   - Print the generated code to console only
+   - Cancel the operation
+
+### `update`
+
+The `update` command refreshes existing CVM server clients with the latest tool definitions. You can update a specific client or all clients at once.
+
+To update a specific client:
+
+```bash
+bun run index.ts update <pubkey>
+```
+
+To update all clients or select from a list:
+
+```bash
+bun run index.ts update
+```
+
+The update command will:
+
+1. Check if the server name has changed
+2. Ask if you want to use the new server name or keep the existing one
+3. Display updated server information and tools
+4. Allow you to confirm before updating
 
 ### `help`
 
@@ -65,6 +96,7 @@ The `ctxcn` utility can be configured via a `ctxcn.config.json` file in your pro
 - `source`: The source directory for the generated client.
 - `relays`: An array of relays to use when connecting to CVM servers.
 - `privateKey`: The private key to use when connecting to CVM servers. If not provided, a new private key will be generated on the fly.
+- `addedClients`: An array of public keys of the clients that have been added. This is automatically managed by the CLI.
 
 ## Example
 
