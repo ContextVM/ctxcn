@@ -191,6 +191,9 @@ async function generateToolMethods(tool: any, serverName: string) {
   // Extract properties from schema for individual parameters
   const inputProperties = extractSchemaProperties(tool.inputSchema);
 
+  // Generate JSDoc comment with the actual type shape
+  const jsDocComment = generateJSDoc(tool, inputProperties, outputInlineType);
+
   // Generate method with individual parameters for better developer experience
   const methodDefinitions =
     inputProperties.length > 0
@@ -198,11 +201,13 @@ async function generateToolMethods(tool: any, serverName: string) {
           toolName,
           inputProperties,
           outputInlineType,
+          jsDocComment,
         )
       : generateMethodWithObjectParam(
           toolName,
           inputInlineType,
           outputInlineType,
+          jsDocComment,
         );
 
   // Add corresponding method signature to server type
@@ -214,14 +219,128 @@ async function generateToolMethods(tool: any, serverName: string) {
   return { methodDefinitions, serverMethod };
 }
 
+function generateJSDoc(
+  tool: any,
+  inputProperties: Array<{ name: string; type: string; required: boolean }>,
+  outputInlineType: string,
+): string {
+  const lines: string[] = [];
+
+  // Add main description
+  if (tool.description) {
+    lines.push(`   * ${tool.description}`);
+  } else {
+    lines.push(`   * ${tool.title || tool.name} tool`);
+  }
+
+  // Add parameter descriptions
+  if (inputProperties.length > 0) {
+    // Extract parameter descriptions from input schema if available
+    const inputSchema = tool.inputSchema;
+    if (inputSchema && inputSchema.properties) {
+      for (const prop of inputProperties) {
+        const propSchema = inputSchema.properties[prop.name];
+        let description = propSchema?.description || "";
+
+        // If no description is available, create a default one based on the parameter name
+        if (!description) {
+          description = generateParameterDescription(prop.name, tool.name);
+        }
+
+        const optional = prop.required ? "" : "[optional] ";
+        lines.push(
+          `   * @param {${prop.type}} ${prop.name} ${optional}${description}`,
+        );
+      }
+    }
+  }
+
+  // Add return type description with the actual type shape
+  const outputSchema = tool.outputSchema;
+  const returnDescription =
+    outputSchema?.description || `The result of the ${tool.name} operation`;
+
+  // Format the return type for JSDoc - use the actual inline type
+  if (outputInlineType.includes("\n")) {
+    // For multi-line types with JSDoc comments, we need to clean them up
+    // Remove inline JSDoc comments and just keep the type structure
+    const cleanedType = outputInlineType
+      .split("\n")
+      .map((line) => {
+        const trimmed = line.trim();
+        // Remove JSDoc comment lines
+        if (
+          trimmed.startsWith("/**") ||
+          trimmed.startsWith("*") ||
+          trimmed.endsWith("*/")
+        ) {
+          return "";
+        }
+        return trimmed;
+      })
+      .filter((line) => line && !line.startsWith("*"))
+      .join(" ");
+
+    // If the cleaned type is too long or complex, use a generic type
+    if (cleanedType.length > 100) {
+      lines.push(`   * @returns {Promise<object>} ${returnDescription}`);
+    } else {
+      lines.push(
+        `   * @returns {Promise<${cleanedType}>} ${returnDescription}`,
+      );
+    }
+  } else {
+    lines.push(
+      `   * @returns {Promise<${outputInlineType}>} ${returnDescription}`,
+    );
+  }
+
+  return `  /**\n${lines.join("\n")}\n   */`;
+}
+
+function generateParameterDescription(
+  paramName: string,
+  toolName: string,
+): string {
+  // Generate a meaningful description based on the parameter name and tool context
+  const paramDescriptions: Record<string, string> = {
+    a: "The first number to add",
+    b: "The second number to add",
+    input: "The input value to be echoed",
+    text: "The text to process",
+    value: "The value to use",
+    data: "The data to process",
+    options: "Configuration options",
+    config: "Configuration settings",
+    url: "The URL to connect to",
+    path: "The file or directory path",
+    name: "The name identifier",
+    id: "The unique identifier",
+  };
+
+  // Check if we have a predefined description
+  if (paramDescriptions[paramName]) {
+    return paramDescriptions[paramName];
+  }
+
+  // Generate a generic description based on the parameter name
+  const capitalizedParam =
+    paramName.charAt(0).toUpperCase() + paramName.slice(1);
+  return `The ${paramName.replace(/([A-Z])/g, " $1").toLowerCase()} parameter`;
+}
+
 function toPascalCase(str: string): string {
-  return str.replace(/(?:^|[-_])(\w)/g, (_, char) => char.toUpperCase());
+  // First replace forward slashes with hyphens to handle names like 'example-servers/everything'
+  const normalized = str.replace(/\//g, '-');
+  // Then convert to PascalCase
+  return normalized.replace(/(?:^|[-_])(\w)/g, (_, char) => char.toUpperCase());
 }
 
 function generateMethodWithIndividualParams(
   toolName: string,
   properties: Array<{ name: string; type: string; required: boolean }>,
   outputType: string,
+  jsDocComment: string,
 ) {
   const parameters = properties
     .map((prop) => `${prop.name}${prop.required ? "" : "?"}: ${prop.type}`)
@@ -230,7 +349,7 @@ function generateMethodWithIndividualParams(
 
   return {
     parameters,
-    classMethod: `
+    classMethod: `  ${jsDocComment}
   async ${toolName}(
     ${parameters}
   ): Promise<${outputType}> {
@@ -243,10 +362,11 @@ function generateMethodWithObjectParam(
   toolName: string,
   inputType: string,
   outputType: string,
+  jsDocComment: string,
 ) {
   return {
     parameters: `args: ${inputType}`,
-    classMethod: `
+    classMethod: `  ${jsDocComment}
   async ${toolName}(
     args: ${inputType}
   ): Promise<${outputType}> {
@@ -265,15 +385,15 @@ ${serverTypeMethods.join("\n")}
 }
 
 function generateGenericCallMethod(): string {
-  return `  private async call(
+  return `  private async call<T = unknown>(
     name: string,
-    args: any
-  ): Promise<any> {
+    args: Record<string, unknown>
+  ): Promise<T> {
     const result = await this.client.callTool({
       name,
       arguments: { ...args },
     });
-    return result.structuredContent;
+    return result.structuredContent as T;
   }`;
 }
 
@@ -321,19 +441,23 @@ export class ${clientName} implements ${serverName} {
       serverPubkey: ${clientName}.SERVER_PUBKEY,
       signer,
       relayHandler,
+      isStateless: true,
       ...rest,
     });
-  }
 
-  async connect(): Promise<void> {
-    await this.client.connect(this.transport);
+    // Auto-connect in constructor
+    this.client.connect(this.transport).catch((error) => {
+      console.error(\`Failed to connect to server: \${error}\`);
+    });
   }
 
   async disconnect(): Promise<void> {
     await this.transport.close();
   }
+
 ${genericCallMethod}
-${classMethods.join("\n")}
+
+${classMethods.join("\n\n")}
 }
 `;
 }
