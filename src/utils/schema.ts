@@ -1,5 +1,6 @@
 import type { JSONSchema } from "json-schema-to-typescript/dist/src/types/JSONSchema";
 import { compile } from "json-schema-to-typescript";
+import { toPascalCase } from "../utils";
 
 export function sanitizeSchema(schema: unknown): object | boolean {
   // A valid JSON Schema is a boolean or an object.
@@ -327,13 +328,6 @@ function generateParameterDescription(
   const capitalizedParam =
     paramName.charAt(0).toUpperCase() + paramName.slice(1);
   return `The ${paramName.replace(/([A-Z])/g, " $1").toLowerCase()} parameter`;
-}
-
-function toPascalCase(str: string): string {
-  // First replace forward slashes with hyphens to handle names like 'example-servers/everything'
-  const normalized = str.replace(/\//g, '-');
-  // Then convert to PascalCase
-  return normalized.replace(/(?:^|[-_])(\w)/g, (_, char) => char.toUpperCase());
 }
 
 function generateMethodWithIndividualParams(

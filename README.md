@@ -12,7 +12,25 @@ The `ctxcn` utility provides the following features:
 
 ## Installation
 
-To get started, clone the repository and install the dependencies:
+### Global Installation
+
+Install ctxcn globally using npm:
+
+```bash
+npm install -g @contextvm/ctxcn
+```
+
+### Local Installation
+
+Install ctxcn as a dev dependency in your project:
+
+```bash
+npm install --save-dev @contextvm/ctxcn
+```
+
+### Development Installation
+
+To get started with the source code, clone the repository and install the dependencies:
 
 ```bash
 git clone https://github.com/your-username/ctxcn.git
@@ -31,6 +49,14 @@ The `init` command initializes your project with a `ctxcn.config.json` file. Thi
 To run the `init` command, execute the following command in your project's root directory:
 
 ```bash
+ctxcn init
+```
+
+If you've installed locally or are working with the source code:
+
+```bash
+npx @contextvm/ctxcn init
+# or
 bun run index.ts init
 ```
 
@@ -43,6 +69,14 @@ The `add` command generates a TypeScript client from a CVM server's tool definit
 To run the `add` command, execute the following command in your project's root directory:
 
 ```bash
+ctxcn add <pubkey>
+```
+
+If you've installed locally or are working with the source code:
+
+```bash
+npx @contextvm/ctxcn add <pubkey>
+# or
 bun run index.ts add <pubkey>
 ```
 
@@ -63,12 +97,20 @@ The `update` command refreshes existing CVM server clients with the latest tool 
 To update a specific client:
 
 ```bash
-bun run index.ts update <pubkey>
+ctxcn update <pubkey>
 ```
 
 To update all clients or select from a list:
 
 ```bash
+ctxcn update
+```
+
+If you've installed locally or are working with the source code:
+
+```bash
+npx @contextvm/ctxcn update <pubkey>
+# or
 bun run index.ts update
 ```
 
@@ -86,6 +128,14 @@ The `help` command displays a help message with information about the available 
 To run the `help` command, execute the following command:
 
 ```bash
+ctxcn help
+```
+
+If you've installed locally or are working with the source code:
+
+```bash
+npx @contextvm/ctxcn help
+# or
 bun run index.ts help
 ```
 

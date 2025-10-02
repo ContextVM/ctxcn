@@ -164,7 +164,7 @@ async function updateSingleClient(cwd: string, config: any, pubkey: string) {
     console.log(`   Tools found: ${toolListResult.tools.length}`);
 
     console.log(`\n🔧 Available Tools:`);
-    toolListResult.tools.forEach((tool, index) => {
+    toolListResult.tools.forEach((tool: any, index: number) => {
       console.log(
         `   ${index + 1}. ${tool.name}: ${tool.description || "No description"}`,
       );

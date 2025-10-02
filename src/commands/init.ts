@@ -1,20 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { DEFAULT_CONFIG, type Config } from "../config";
-import * as readline from "readline";
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-function askQuestion(query: string, defaultValue: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(`${query} (${defaultValue}): `, (answer) => {
-      resolve(answer || defaultValue);
-    });
-  });
-}
+import { askQuestion, closeReadlineInterface } from "../utils/cli";
 
 export async function handleInit(cwd: string) {
   console.log("🚀 Initializing project for ctxcn...");
@@ -59,7 +46,7 @@ export async function handleInit(cwd: string) {
   );
   const relays = relaysStr.split(",").map((r) => r.trim());
 
-  rl.close();
+  closeReadlineInterface();
 
   const config: Config = {
     source,

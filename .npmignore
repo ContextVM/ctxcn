@@ -1,0 +1,34 @@
+# Source files (we publish the compiled dist folder)
+src/
+*.ts
+!*.d.ts
+
+# Development files
+.git/
+.gitignore
+bun.lock
+CLAUDE.md
+
+# Testing files
+src/__mocks__/
+**/*.test.ts
+**/*.spec.ts
+
+# Configuration files that shouldn't be published
+tsconfig.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules
+node_modules/
+
+# Build output (except for what we want to publish)
+# dist/ is included in package.json files field

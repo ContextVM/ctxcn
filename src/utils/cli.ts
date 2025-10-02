@@ -25,9 +25,14 @@ export function askQuestion(
 ): Promise<string> {
   const readlineInterface = createReadlineInterface();
   return new Promise((resolve) => {
-    readlineInterface.question(`${query} (${defaultValue}): `, (answer) => {
-      resolve(answer || defaultValue);
-    });
+    try {
+      readlineInterface.question(`${query} (${defaultValue}): `, (answer) => {
+        resolve(answer || defaultValue);
+      });
+    } catch (error) {
+      console.error("Error reading input:", error);
+      resolve(defaultValue);
+    }
   });
 }
 
@@ -37,14 +42,21 @@ export function askYesNo(
 ): Promise<boolean> {
   const readlineInterface = createReadlineInterface();
   return new Promise((resolve) => {
-    const defaultStr = defaultValue ? "Y/n" : "y/N";
-    readlineInterface.question(`${query} (${defaultStr}): `, (answer) => {
-      if (!answer) {
-        resolve(defaultValue);
-      } else {
-        resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
-      }
-    });
+    try {
+      const defaultStr = defaultValue ? "Y/n" : "y/N";
+      readlineInterface.question(`${query} (${defaultStr}): `, (answer) => {
+        if (!answer) {
+          resolve(defaultValue);
+        } else {
+          resolve(
+            answer.toLowerCase() === "y" || answer.toLowerCase() === "yes",
+          );
+        }
+      });
+    } catch (error) {
+      console.error("Error reading input:", error);
+      resolve(defaultValue);
+    }
   });
 }
 
@@ -55,22 +67,27 @@ export function askChoice(
 ): Promise<string> {
   const readlineInterface = createReadlineInterface();
   return new Promise((resolve) => {
-    console.log(query);
-    options.forEach((option, index) => {
-      const marker = index === defaultIndex ? " (default)" : "";
-      console.log(`  ${index + 1}. ${option}${marker}`);
-    });
+    try {
+      console.log(query);
+      options.forEach((option, index) => {
+        const marker = index === defaultIndex ? " (default)" : "";
+        console.log(`  ${index + 1}. ${option}${marker}`);
+      });
 
-    readlineInterface.question(
-      `Choose an option (1-${options.length})`,
-      (answer) => {
-        const choice = parseInt(answer);
-        if (isNaN(choice) || choice < 1 || choice > options.length) {
-          resolve(options[defaultIndex] || "");
-        } else {
-          resolve(options[choice - 1] || "");
-        }
-      },
-    );
+      readlineInterface.question(
+        `Choose an option (1-${options.length})`,
+        (answer) => {
+          const choice = parseInt(answer);
+          if (isNaN(choice) || choice < 1 || choice > options.length) {
+            resolve(options[defaultIndex] || "");
+          } else {
+            resolve(options[choice - 1] || "");
+          }
+        },
+      );
+    } catch (error) {
+      console.error("Error reading input:", error);
+      resolve(options[defaultIndex] || "");
+    }
   });
 }

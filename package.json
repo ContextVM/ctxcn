@@ -1,14 +1,44 @@
 {
-  "name": "ctxcn",
-  "module": "index.ts",
+  "name": "@contextvm/ctxcn",
+  "version": "1.0.1",
+  "description": "A command-line utility inspired by shadcn that streamlines the integration of ContextVM (CVM) servers into your TypeScript projects",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
-  "private": true,
-  "scripts": {
-    "format": "prettier --write ."
+  "bin": {
+    "ctxcn": "dist/index.js"
   },
+  "scripts": {
+    "build": "bun run tsc",
+    "dev": "bun run index.ts",
+    "format": "prettier --write .",
+    "prepublishOnly": "bun run build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "bun run build && changeset publish"
+  },
+  "keywords": [
+    "contextvm",
+    "cvm",
+    "mcp",
+    "cli",
+    "typescript",
+    "code-generation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@types/bun": "latest",
-    "prettier": "^3.6.2"
+    "@types/node": "^20.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
