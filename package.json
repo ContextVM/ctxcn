@@ -1,0 +1,21 @@
+{
+  "name": "ctxcn-cli",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.6.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@contextvm/sdk": "^0.1.29",
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "json-schema-to-typescript": "^15.0.4"
+  }
+}
