@@ -1,10 +1,10 @@
-# ctxcn-cli
+# ctxcn
 
-`ctxcn-cli` is a command-line utility inspired by `shadcn` that streamlines the integration of ContextVM (CVM) servers into your TypeScript projects. It generates a type-safe client from a CVM server's tool definitions, allowing you to call CVM tools as if they were native TypeScript functions.
+`ctxcn` is a command-line utility inspired by `shadcn` that streamlines the integration of ContextVM (CVM) servers into your TypeScript projects. It generates a type-safe client from a CVM server's tool definitions, allowing you to call CVM tools as if they were native TypeScript functions.
 
 ## Overview
 
-The `ctxcn-cli` utility provides the following features:
+The `ctxcn` utility provides the following features:
 
 - **Interactive Project Initialization**: Sets up your project with the necessary configuration to connect to CVM servers through an interactive command-line interface.
 - **Code Generation**: Generates a TypeScript client from a CVM server's tool definitions, providing a seamless and type-safe development experience.
@@ -15,14 +15,14 @@ The `ctxcn-cli` utility provides the following features:
 To get started, clone the repository and install the dependencies:
 
 ```bash
-git clone https://github.com/your-username/ctxcn-cli.git
-cd ctxcn-cli
+git clone https://github.com/your-username/ctxcn.git
+cd ctxcn
 bun install
 ```
 
 ## Usage
 
-The `ctxcn-cli` utility provides three main commands: `init`, `add`, and `help`.
+The `ctxcn` utility provides three main commands: `init`, `add`, and `help`.
 
 ### `init`
 
@@ -60,7 +60,7 @@ bun run index.ts help
 
 ## Configuration
 
-The `ctxcn-cli` utility can be configured via a `ctxcn.config.json` file in your project's root directory. The following options are available:
+The `ctxcn` utility can be configured via a `ctxcn.config.json` file in your project's root directory. The following options are available:
 
 - `source`: The source directory for the generated client.
 - `relays`: An array of relays to use when connecting to CVM servers.

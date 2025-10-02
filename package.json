@@ -1,5 +1,5 @@
 {
-  "name": "ctxcn-cli",
+  "name": "ctxcn",
   "module": "index.ts",
   "type": "module",
   "private": true,

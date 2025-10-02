@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "ctxcn-cli",
+      "name": "ctxcn",
       "dependencies": {
         "@contextvm/sdk": "^0.1.29",
         "@modelcontextprotocol/sdk": "^1.18.2",
