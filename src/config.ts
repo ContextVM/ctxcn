@@ -10,7 +10,7 @@ export interface Config {
 
 export const DEFAULT_CONFIG: Config = {
   source: "src/ctxcn",
-  relays: ["ws://localhost:10547"],
+  relays: ["wss://relay.contextvm.org"],
   addedClients: [],
 };
 

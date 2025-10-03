@@ -182,6 +182,7 @@ async function updateSingleClient(cwd: string, config: any, pubkey: string) {
       serverDetails,
       toolListResult,
       serverName,
+      config.privateKey,
     );
     const clientName = `${serverName}Client`;
 

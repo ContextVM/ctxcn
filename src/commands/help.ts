@@ -1,6 +1,6 @@
 export function handleHelp() {
   console.log(`
-  Usage: ctxcn <command> [options]
+  Usage: npx @contextvm/ctxcn <command> [options]
 
   Commands:
     init      Initialize a new project and create a ctxcn.config.json file.

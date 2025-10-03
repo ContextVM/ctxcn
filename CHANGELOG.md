@@ -1,5 +1,16 @@
 # @contextvm/ctxcn
 
+## 1.0.3
+
+### Patch Changes
+
+- feat(cli): enhance add command to support updating existing clients
+  - Add interactive prompt when client already exists to update or cancel
+  - Prevent duplicate entries in config.addedClients array
+  - Update README with improved quickstart guide and configuration examples
+  - Change default relay to wss://relay.contextvm.org
+  - Improve client code generation with environment variable support
+
 ## 1.0.2
 
 ### Patch Changes

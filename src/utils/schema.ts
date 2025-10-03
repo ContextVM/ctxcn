@@ -141,6 +141,7 @@ export async function generateClientCode(
   serverDetails: any,
   toolListResult: any,
   serverName: string,
+  privateKey?: string,
 ): Promise<string> {
   const classMethods: string[] = [];
   const serverTypeMethods: string[] = [];
@@ -166,6 +167,7 @@ export async function generateClientCode(
     genericCallMethod,
     classMethods,
     serverName,
+    privateKey,
   );
 }
 
@@ -398,6 +400,7 @@ function assembleClientCode(
   genericCallMethod: string,
   classMethods: string[],
   serverName: string,
+  privateKey?: string,
 ): string {
   return `import { Client } from "@modelcontextprotocol/sdk/client";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -425,8 +428,8 @@ export class ${clientName} implements ${serverName} {
 
     const {
       privateKey,
-      relays = ["ws://localhost:10547"],
-      signer = new PrivateKeySigner(privateKey),
+      relays = ["wss://relay.contextvm.org"],
+      signer = new PrivateKeySigner(privateKey || process.env.CTXCN_PRIVATE_KEY${privateKey ? ` || "${privateKey}"` : ""}),
       relayHandler = new ApplesauceRelayPool(relays),
       ...rest
     } = options;

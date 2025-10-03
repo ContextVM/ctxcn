@@ -34,9 +34,19 @@ export async function handleAdd(pubkey: string, cwd: string) {
   // Check if client is already added
   if (config.addedClients && config.addedClients.includes(pubkey)) {
     console.log(`⚠️ Client with pubkey ${pubkey} is already added.`);
-    console.log("Use 'ctxcn update' to refresh the client if needed.");
-    closeReadlineInterface();
-    process.exit(0);
+
+    const choice = await askQuestion(
+      "Would you like to update this client? (y/n)",
+      "n",
+    );
+
+    if (choice.toLowerCase() !== "y" && choice.toLowerCase() !== "yes") {
+      console.log("❌ Operation cancelled.");
+      closeReadlineInterface();
+      process.exit(0);
+    }
+
+    console.log("🔄 Updating existing client...");
   }
 
   console.log(`🔗 Connecting to server ${pubkey}...`);
@@ -50,7 +60,6 @@ export async function handleAdd(pubkey: string, cwd: string) {
     signer: new PrivateKeySigner(config.privateKey),
     relayHandler: new ApplesauceRelayPool(config.relays),
     serverPubkey: pubkey,
-    // isStateless: true,
   });
 
   try {
@@ -108,6 +117,7 @@ export async function handleAdd(pubkey: string, cwd: string) {
       serverDetails,
       toolListResult,
       serverName,
+      config.privateKey,
     );
 
     if (printOnly) {
@@ -121,11 +131,13 @@ export async function handleAdd(pubkey: string, cwd: string) {
       const outputPath = path.join(outputDir, `${clientName}.ts`);
       await writeFile(outputPath, clientCode);
 
-      // Add the client to the config
+      // Add the client to the config if it's not already there
       if (!config.addedClients) {
         config.addedClients = [];
       }
-      config.addedClients.push(pubkey);
+      if (!config.addedClients.includes(pubkey)) {
+        config.addedClients.push(pubkey);
+      }
       await saveConfig(cwd, config);
 
       console.log(`✅ Generated client for ${serverName} at ${outputPath}`);
