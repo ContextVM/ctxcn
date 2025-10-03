@@ -1,6 +1,6 @@
-import type { JSONSchema } from "json-schema-to-typescript/dist/src/types/JSONSchema";
+import type { JSONSchema } from "json-schema-to-typescript";
 import { compile } from "json-schema-to-typescript";
-import { toPascalCase } from "../utils";
+import { toPascalCase } from "../utils.js";
 
 export function sanitizeSchema(schema: unknown): object | boolean {
   // A valid JSON Schema is a boolean or an object.

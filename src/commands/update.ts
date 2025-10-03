@@ -1,10 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { mkdir, writeFile, access, readdir } from "fs/promises";
 import path from "path";
-import { toPascalCase } from "../utils";
-import { loadConfig, saveConfig } from "../config";
-import { askQuestion, askYesNo, closeReadlineInterface } from "../utils/cli";
-import { generateClientCode } from "../utils/schema";
+import { toPascalCase } from "../utils.js";
+import { loadConfig } from "../config.js";
+import { askQuestion, askYesNo, closeReadlineInterface } from "../utils/cli.js";
+import { generateClientCode } from "../utils/schema.js";
 import {
   ApplesauceRelayPool,
   NostrClientTransport,

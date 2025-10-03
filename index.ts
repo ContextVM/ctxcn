@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-
-import { loadConfig } from "./src/config";
-import { handleInit } from "./src/commands/init";
-import { handleAdd } from "./src/commands/add";
-import { handleUpdate } from "./src/commands/update";
-import { handleHelp } from "./src/commands/help";
+import { handleInit } from "./src/commands/init.js";
+import { handleAdd } from "./src/commands/add.js";
+import { handleUpdate } from "./src/commands/update.js";
+import { handleHelp } from "./src/commands/help.js";
 
 async function main() {
   try {

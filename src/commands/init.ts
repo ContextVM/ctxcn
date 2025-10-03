@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { DEFAULT_CONFIG, type Config } from "../config";
-import { askQuestion, closeReadlineInterface } from "../utils/cli";
+import { DEFAULT_CONFIG, type Config } from "../config.js";
+import { askQuestion, closeReadlineInterface } from "../utils/cli.js";
 
 export async function handleInit(cwd: string) {
   console.log("🚀 Initializing project for ctxcn...");
