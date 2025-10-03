@@ -1,22 +1,23 @@
-import { Client } from "@modelcontextprotocol/sdk/client";
-import { mkdir, writeFile, access, readdir } from "fs/promises";
+import { readdir } from "fs/promises";
 import path from "path";
 import { toPascalCase } from "../utils.js";
 import { loadConfig } from "../config.js";
 import { askQuestion, askYesNo, closeReadlineInterface } from "../utils/cli.js";
 import { generateClientCode } from "../utils/schema.js";
-import {
-  ApplesauceRelayPool,
-  NostrClientTransport,
-  PrivateKeySigner,
-} from "@contextvm/sdk";
+import { createCvmConnection } from "../utils/cvm-client.js";
+import { fileExists, writeFileWithDir } from "../utils/file-operations.js";
+import { handleConfigError, handleCliError } from "../utils/error-handler.js";
 
 async function findExistingClientFile(
   cwd: string,
   sourceDir: string,
 ): Promise<string | null> {
+  const outputDir = path.join(cwd, sourceDir);
+  if (!(await fileExists(outputDir))) {
+    return null;
+  }
+
   try {
-    const outputDir = path.join(cwd, sourceDir);
     const existingFiles = await readdir(outputDir);
     const existingClientFile = existingFiles.find(
       (file: string) => file.endsWith(".ts") && file.includes("Client"),
@@ -32,17 +33,9 @@ export async function handleUpdate(cwd: string, pubkey?: string) {
 
   // Check if config file exists
   const configPath = path.join(cwd, "ctxcn.config.json");
-  try {
-    await access(configPath);
-  } catch (error) {
-    console.error(
-      "❌ Error: Configuration file 'ctxcn.config.json' not found.",
-    );
-    console.error(
-      "Please run 'ctxcn init' first to create a configuration file.",
-    );
+  if (!(await fileExists(configPath))) {
     closeReadlineInterface();
-    process.exit(1);
+    handleConfigError();
   }
 
   const config = await loadConfig(cwd);
@@ -110,22 +103,12 @@ export async function handleUpdate(cwd: string, pubkey?: string) {
 async function updateSingleClient(cwd: string, config: any, pubkey: string) {
   console.log(`\n🔄 Updating client ${pubkey}...`);
 
-  const client = new Client({
-    name: `update-client`,
-    version: "1.0.0",
-  });
-
-  const transport = new NostrClientTransport({
-    signer: new PrivateKeySigner(config.privateKey),
-    relayHandler: new ApplesauceRelayPool(config.relays),
-    serverPubkey: pubkey,
-  });
-
   try {
-    await client.connect(transport);
-    const serverDetails = client.getServerVersion();
-    const toolListResult = await client.listTools();
-    await transport.close();
+    const { serverDetails, toolListResult } = await createCvmConnection(
+      pubkey,
+      config,
+      "update-client",
+    );
 
     const newServerName = toPascalCase(serverDetails?.name || "UnknownServer");
 
@@ -179,20 +162,18 @@ async function updateSingleClient(cwd: string, config: any, pubkey: string) {
 
     const clientCode = await generateClientCode(
       pubkey,
-      serverDetails,
       toolListResult,
       serverName,
       config.privateKey,
+      config.relays,
     );
     const clientName = `${serverName}Client`;
 
-    const outputDir = path.join(cwd, config.source);
-    await mkdir(outputDir, { recursive: true });
-    const outputPath = path.join(outputDir, `${clientName}.ts`);
-    await writeFile(outputPath, clientCode);
+    const outputPath = path.join(cwd, config.source, `${clientName}.ts`);
+    await writeFileWithDir(outputPath, clientCode);
 
     console.log(`✅ Updated client for ${serverName} at ${outputPath}`);
   } catch (error) {
-    console.error(`❌ Error updating client ${pubkey}:`, error);
+    handleCliError(error, `updating client ${pubkey}`);
   }
 }

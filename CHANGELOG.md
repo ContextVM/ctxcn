@@ -1,5 +1,16 @@
 # @contextvm/ctxcn
 
+## 1.0.4
+
+### Patch Changes
+
+- refactor(cli): centralize error handling and file operations
+
+  Centralize error handling with new error handler utilities
+  Extract file operations into reusable utility functions
+  Simplify client connection logic with a new connection utility
+  Remove duplicate code and improve maintainability
+
 ## 1.0.3
 
 ### Patch Changes

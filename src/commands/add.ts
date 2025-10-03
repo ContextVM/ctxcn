@@ -1,32 +1,20 @@
-import { Client } from "@modelcontextprotocol/sdk/client";
-import { mkdir, writeFile, access } from "fs/promises";
 import path from "path";
 import { toPascalCase } from "../utils.js";
 import { loadConfig, saveConfig } from "../config.js";
 import { askQuestion, closeReadlineInterface } from "../utils/cli.js";
 import { generateClientCode } from "../utils/schema.js";
-import {
-  ApplesauceRelayPool,
-  NostrClientTransport,
-  PrivateKeySigner,
-} from "@contextvm/sdk";
+import { createCvmConnection } from "../utils/cvm-client.js";
+import { fileExists, writeFileWithDir } from "../utils/file-operations.js";
+import { handleConfigError, handleCliError } from "../utils/error-handler.js";
 
 export async function handleAdd(pubkey: string, cwd: string) {
   console.log("🔍 Checking for configuration file...");
 
   // Check if config file exists
   const configPath = path.join(cwd, "ctxcn.config.json");
-  try {
-    await access(configPath);
-  } catch (error) {
-    console.error(
-      "❌ Error: Configuration file 'ctxcn.config.json' not found.",
-    );
-    console.error(
-      "Please run 'ctxcn init' first to create a configuration file.",
-    );
+  if (!(await fileExists(configPath))) {
     closeReadlineInterface();
-    process.exit(1);
+    handleConfigError();
   }
 
   const config = await loadConfig(cwd);
@@ -51,22 +39,12 @@ export async function handleAdd(pubkey: string, cwd: string) {
 
   console.log(`🔗 Connecting to server ${pubkey}...`);
 
-  const client = new Client({
-    name: `generator-client`,
-    version: "1.0.0",
-  });
-
-  const transport = new NostrClientTransport({
-    signer: new PrivateKeySigner(config.privateKey),
-    relayHandler: new ApplesauceRelayPool(config.relays),
-    serverPubkey: pubkey,
-  });
-
   try {
-    await client.connect(transport);
-    const serverDetails = client.getServerVersion();
-    const toolListResult = await client.listTools();
-    await transport.close();
+    const { serverDetails, toolListResult } = await createCvmConnection(
+      pubkey,
+      config,
+      "generator-client",
+    );
     let serverName = toPascalCase(serverDetails?.name || "UnknownServer");
 
     // Interactive confirmation
@@ -114,10 +92,10 @@ export async function handleAdd(pubkey: string, cwd: string) {
 
     const clientCode = await generateClientCode(
       pubkey,
-      serverDetails,
       toolListResult,
       serverName,
       config.privateKey,
+      config.relays,
     );
 
     if (printOnly) {
@@ -126,10 +104,8 @@ export async function handleAdd(pubkey: string, cwd: string) {
       console.log(clientCode);
       console.log("=".repeat(50));
     } else {
-      const outputDir = path.join(cwd, config.source);
-      await mkdir(outputDir, { recursive: true });
-      const outputPath = path.join(outputDir, `${clientName}.ts`);
-      await writeFile(outputPath, clientCode);
+      const outputPath = path.join(cwd, config.source, `${clientName}.ts`);
+      await writeFileWithDir(outputPath, clientCode);
 
       // Add the client to the config if it's not already there
       if (!config.addedClients) {
@@ -146,8 +122,7 @@ export async function handleAdd(pubkey: string, cwd: string) {
     closeReadlineInterface();
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error connecting to server:", error);
     closeReadlineInterface();
-    process.exit(1);
+    handleCliError(error, "connecting to server");
   }
 }

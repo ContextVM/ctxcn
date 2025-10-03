@@ -2,25 +2,23 @@ import { promises as fs } from "fs";
 import path from "path";
 import { DEFAULT_CONFIG, type Config } from "../config.js";
 import { askQuestion, closeReadlineInterface } from "../utils/cli.js";
+import { ensureDirectoryExists, fileExists } from "../utils/file-operations.js";
+import { handleValidationError } from "../utils/error-handler.js";
 
 export async function handleInit(cwd: string) {
   console.log("🚀 Initializing project for ctxcn...");
 
   console.log("\n🔍 Verifying project structure...");
   const packageJsonPath = path.join(cwd, "package.json");
-  try {
-    await fs.access(packageJsonPath);
-    console.log("✔️ Project structure seems valid (package.json found).");
-  } catch (error) {
-    console.error(
-      "❌ Error: No package.json found. Please run this command in a valid project root directory.",
+  if (!(await fileExists(packageJsonPath))) {
+    handleValidationError(
+      "No package.json found. Please run this command in a valid project root directory.",
     );
-    process.exit(1);
   }
+  console.log("✔️ Project structure seems valid (package.json found).");
 
   const configPath = path.join(cwd, "ctxcn.config.json");
-  try {
-    await fs.access(configPath);
+  if (await fileExists(configPath)) {
     const overwrite = await askQuestion(
       "A `ctxcn.config.json` file already exists. Do you want to overwrite it?",
       "n",
@@ -31,8 +29,6 @@ export async function handleInit(cwd: string) {
       );
       process.exit(0);
     }
-  } catch (error) {
-    // Config file doesn't exist, so we can proceed.
   }
 
   console.log("\n⚙️ Please provide your configuration details:");
@@ -59,12 +55,8 @@ export async function handleInit(cwd: string) {
   );
 
   const sourceDir = path.join(cwd, config.source);
-  try {
-    await fs.access(sourceDir);
-  } catch (error) {
-    await fs.mkdir(sourceDir, { recursive: true });
-    console.log(`✔️ Source directory \`${config.source}\` created.`);
-  }
+  await ensureDirectoryExists(sourceDir);
+  console.log(`✔️ Source directory \`${config.source}\` created.`);
 
   console.log("\n📦 Checking for required dependencies...");
   const packageJsonContent = await fs.readFile(packageJsonPath, "utf-8");

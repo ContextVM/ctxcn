@@ -3,6 +3,10 @@ import { handleInit } from "./src/commands/init.js";
 import { handleAdd } from "./src/commands/add.js";
 import { handleUpdate } from "./src/commands/update.js";
 import { handleHelp } from "./src/commands/help.js";
+import {
+  handleValidationError,
+  handleCliError,
+} from "./src/utils/error-handler.js";
 
 async function main() {
   try {
@@ -14,35 +18,34 @@ async function main() {
       return;
     }
 
+    const cwd = process.cwd();
+
     switch (command) {
       case "init":
-        await handleInit(process.cwd());
+        await handleInit(cwd);
         break;
       case "add":
         const pubkey = args[1];
         if (!pubkey) {
-          console.error("Error: Missing pubkey for 'add' command.");
-          console.error("Usage: ctxcn add <pubkey>");
-          process.exit(1);
+          handleValidationError(
+            "Missing pubkey for 'add' command.\nUsage: ctxcn add <pubkey>",
+          );
         }
-        await handleAdd(pubkey, process.cwd());
+        await handleAdd(pubkey, cwd);
         break;
       case "update":
         const updatePubkey = args[1];
-        await handleUpdate(process.cwd(), updatePubkey);
+        await handleUpdate(cwd, updatePubkey);
         break;
       case "help":
         handleHelp();
         break;
       default:
-        console.error(`Error: Unknown command '${command}'`);
-        handleHelp();
-        process.exit(1);
+        handleValidationError(`Unknown command '${command}'`);
         break;
     }
   } catch (error) {
-    console.error("An unexpected error occurred:", error);
-    process.exit(1);
+    handleCliError(error, "main process");
   }
 }
 
