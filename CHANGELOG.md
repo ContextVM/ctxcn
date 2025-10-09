@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.5
+
+### Patch Changes
+
+- fix: remove process usage
+
 ## 1.0.4
 
 ### Patch Changes
