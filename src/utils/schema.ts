@@ -431,7 +431,7 @@ export class ${clientName} implements ${serverName} {
     const {
       privateKey,
       relays = ${relays ? JSON.stringify(relays) : `["wss://relay.contextvm.org"]`},
-      signer = new PrivateKeySigner(privateKey || process.env.CTXCN_PRIVATE_KEY${privateKey ? ` || "${privateKey}"` : ""}),
+      signer = new PrivateKeySigner(privateKey || ""}),
       relayHandler = new ApplesauceRelayPool(relays),
       ...rest
     } = options;
