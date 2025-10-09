@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { generateClientCode } from "./schema";
+import { generateClientCode, resolveSchemaRefs } from "./schema";
 
 // Mock tool data with various naming patterns
 const mockTools = [
@@ -163,4 +163,107 @@ test("generateClientCode handles tools with no parameters", async () => {
   // Check that the method is generated with PascalCase name
   expect(clientCode).toContain("async NoParamsTool(");
   expect(clientCode).toContain('return this.call("no-params-tool"');
+});
+
+test("resolveSchemaRefs handles internal $ref references", async () => {
+  // Test schema with $ref pointing to another property
+  const testSchema = {
+    type: "object",
+    properties: {
+      bookmarks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            source_event: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                kind: { type: "number" },
+                content: { type: "string" },
+              },
+              required: ["id", "kind", "content"],
+            },
+            target_event: {
+              $ref: "#/properties/bookmarks/items/properties/source_event",
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const resolved = resolveSchemaRefs(testSchema);
+
+  // The $ref should be resolved to the actual schema
+  expect(resolved.properties.bookmarks.items.properties.target_event).toEqual({
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      kind: { type: "number" },
+      content: { type: "string" },
+    },
+    required: ["id", "kind", "content"],
+  });
+});
+
+test("generateClientCode handles schemas with $ref references", async () => {
+  // Mock tool with $ref in output schema
+  const toolWithRef = {
+    name: "search-bookmarks",
+    description: "Search bookmarks",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        bookmarks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              source_event: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  kind: { type: "number" },
+                  content: { type: "string" },
+                  tags: { type: "array", items: { type: "string" } },
+                  sig: { type: "string" },
+                },
+                required: ["id", "kind", "content", "tags", "sig"],
+              },
+              target_event: {
+                $ref: "#/properties/bookmarks/items/properties/source_event",
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const mockToolList = {
+    tools: [toolWithRef],
+  };
+
+  const clientCode = await generateClientCode(
+    "test-pubkey",
+    mockToolList,
+    "TestServer",
+  );
+
+  // The generated code should have resolved the $ref and include the full type definition
+  expect(clientCode).toContain("source_event?: {");
+  expect(clientCode).toContain("target_event?: {");
+  // Both should have the same structure with id, kind, content, tags, sig
+  expect(clientCode).toContain("id: string;");
+  expect(clientCode).toContain("kind: number;");
+  expect(clientCode).toContain("content: string;");
+  expect(clientCode).toContain("tags: string[];");
+  expect(clientCode).toContain("sig: string;");
 });

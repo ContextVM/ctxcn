@@ -1,5 +1,13 @@
 # @contextvm/ctxcn
 
+## 1.0.7
+
+### Patch Changes
+
+- feat(utils): add schema reference resolution
+
+  Add `resolveSchemaRefs` function to resolve internal $ref references in JSON schemas. Update `generateTypeFromSchema` to resolve references before generating TypeScript types. This allows schemas with $ref to be properly converted to TypeScript types.
+
 ## 1.0.6
 
 ### Patch Changes

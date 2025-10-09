@@ -43,6 +43,52 @@ export function sanitizeSchema(schema: unknown): object | boolean {
   return traverse(schema);
 }
 
+export function resolveSchemaRefs(schema: any, rootSchema?: any): any {
+  if (!rootSchema) {
+    rootSchema = schema;
+  }
+
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
+
+  if (Array.isArray(schema)) {
+    return schema.map((item) => resolveSchemaRefs(item, rootSchema));
+  }
+
+  // Handle $ref
+  if (schema.$ref) {
+    const refPath = schema.$ref;
+    if (refPath.startsWith("#/")) {
+      // Resolve internal reference
+      const pathParts = refPath.substring(2).split("/");
+      let resolved: any = rootSchema;
+
+      for (const part of pathParts) {
+        if (resolved && typeof resolved === "object" && part in resolved) {
+          resolved = resolved[part];
+        } else {
+          // If we can't resolve the path, return the original schema
+          return schema;
+        }
+      }
+
+      // Recursively resolve references in the resolved schema
+      return resolveSchemaRefs(resolved, rootSchema);
+    }
+  }
+
+  // Recursively process all properties
+  const resolved: any = {};
+  for (const key in schema) {
+    if (Object.prototype.hasOwnProperty.call(schema, key)) {
+      resolved[key] = resolveSchemaRefs(schema[key], rootSchema);
+    }
+  }
+
+  return resolved;
+}
+
 export function extractInlineType(typeDefinition: string): string {
   // Extract the actual type definition from a generated type
   // Handle both interface and type definitions
@@ -67,13 +113,34 @@ function formatInlineType(typeShape: string): string {
   if (typeShape.startsWith("{") && typeShape.endsWith("}")) {
     const objectContent = typeShape.slice(1, -1).trim();
     if (objectContent) {
-      const properties = objectContent
+      const lines = objectContent
         .split("\n")
         .map((line) => line.trim())
-        .filter((line) => line)
-        .map((line) => `      ${line}`)
-        .join("\n");
-      return `{\n${properties}\n    }`;
+        .filter((line) => line);
+
+      let indentLevel = 1;
+      const formattedLines = lines.map((line) => {
+        // Calculate indentation based on braces
+        const openBraces = (line.match(/{/g) || []).length;
+        const closeBraces = (line.match(/}/g) || []).length;
+
+        // Decrease indent before lines that close more than they open
+        if (closeBraces > openBraces) {
+          indentLevel = Math.max(1, indentLevel - (closeBraces - openBraces));
+        }
+
+        const indent = "  ".repeat(indentLevel);
+        const formattedLine = `${indent}${line}`;
+
+        // Increase indent after lines that open more than they close
+        if (openBraces > closeBraces) {
+          indentLevel += openBraces - closeBraces;
+        }
+
+        return formattedLine;
+      });
+
+      return `{\n${formattedLines.join("\n")}\n  }`;
     }
     return "{}";
   }
@@ -130,7 +197,10 @@ export async function generateTypeFromSchema(
     return `export type ${typeName} = ${sanitizedSchema ? "any" : "never"};`;
   }
 
-  return await compile(sanitizedSchema, typeName, {
+  // Resolve internal $ref references before compilation
+  const resolvedSchema = resolveSchemaRefs(sanitizedSchema);
+
+  return await compile(resolvedSchema, typeName, {
     bannerComment: "",
     additionalProperties: false,
   });
