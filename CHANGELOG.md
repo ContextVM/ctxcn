@@ -1,5 +1,14 @@
 # @contextvm/ctxcn
 
+## 1.0.6
+
+### Patch Changes
+
+- fix(utils): fix toPascalCase and refactor generateClientCode
+  - Fix toPascalCase to handle null, undefined, and edge cases properly
+  - Refactor generateClientCode to use the improved toPascalCase and improve code structure
+  - Add tests to ensure correctness and prevent regressions
+
 ## 1.0.5
 
 ### Patch Changes

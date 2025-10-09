@@ -172,21 +172,29 @@ export async function generateClientCode(
   );
 }
 
-async function generateToolMethods(tool: any, serverName: string) {
-  const toolName = tool.name;
-  const capitalizedToolName = toPascalCase(tool.name);
-  const inputTypeName = `${capitalizedToolName}Input`;
-  const outputTypeName = `${capitalizedToolName}Output`;
+interface ToolInfo {
+  originalName: string;
+  pascalName: string;
+  inputTypeName: string;
+  outputTypeName: string;
+}
+
+async function generateToolMethods(
+  tool: any,
+  serverName: string,
+): Promise<{ methodDefinitions: any; serverMethod: string }> {
+  const toolInfo: ToolInfo = {
+    originalName: tool.name,
+    pascalName: toPascalCase(tool.name),
+    inputTypeName: `${toPascalCase(tool.name)}Input`,
+    outputTypeName: `${toPascalCase(tool.name)}Output`,
+  };
 
   // Generate types temporarily to extract inline definitions
-  const inputType = await generateTypeFromSchema(
-    tool.inputSchema,
-    inputTypeName,
-  );
-  const outputType = await generateTypeFromSchema(
-    tool.outputSchema,
-    outputTypeName,
-  );
+  const [inputType, outputType] = await Promise.all([
+    generateTypeFromSchema(tool.inputSchema, toolInfo.inputTypeName),
+    generateTypeFromSchema(tool.outputSchema, toolInfo.outputTypeName),
+  ]);
 
   // Extract inline type definitions for better IDE inference
   const inputInlineType = extractInlineType(inputType);
@@ -202,13 +210,13 @@ async function generateToolMethods(tool: any, serverName: string) {
   const methodDefinitions =
     inputProperties.length > 0
       ? generateMethodWithIndividualParams(
-          toolName,
+          toolInfo,
           inputProperties,
           outputInlineType,
           jsDocComment,
         )
       : generateMethodWithObjectParam(
-          toolName,
+          toolInfo,
           inputInlineType,
           outputInlineType,
           jsDocComment,
@@ -217,8 +225,8 @@ async function generateToolMethods(tool: any, serverName: string) {
   // Add corresponding method signature to server type
   const serverMethod =
     inputProperties.length > 0
-      ? `  ${toolName}: (${methodDefinitions.parameters}) => Promise<${outputInlineType}>;`
-      : `  ${toolName}: (args: ${inputInlineType}) => Promise<${outputInlineType}>;`;
+      ? `  ${toolInfo.pascalName}: (${methodDefinitions.parameters}) => Promise<${outputInlineType}>;`
+      : `  ${toolInfo.pascalName}: (args: ${inputInlineType}) => Promise<${outputInlineType}>;`;
 
   return { methodDefinitions, serverMethod };
 }
@@ -334,7 +342,7 @@ function generateParameterDescription(
 }
 
 function generateMethodWithIndividualParams(
-  toolName: string,
+  toolInfo: ToolInfo,
   properties: Array<{ name: string; type: string; required: boolean }>,
   outputType: string,
   jsDocComment: string,
@@ -347,16 +355,16 @@ function generateMethodWithIndividualParams(
   return {
     parameters,
     classMethod: `  ${jsDocComment}
-  async ${toolName}(
+  async ${toolInfo.pascalName}(
     ${parameters}
   ): Promise<${outputType}> {
-    return this.call("${toolName}", { ${argsObject} });
+    return this.call("${toolInfo.originalName}", { ${argsObject} });
   }`,
   };
 }
 
 function generateMethodWithObjectParam(
-  toolName: string,
+  toolInfo: ToolInfo,
   inputType: string,
   outputType: string,
   jsDocComment: string,
@@ -364,10 +372,10 @@ function generateMethodWithObjectParam(
   return {
     parameters: `args: ${inputType}`,
     classMethod: `  ${jsDocComment}
-  async ${toolName}(
+  async ${toolInfo.pascalName}(
     args: ${inputType}
   ): Promise<${outputType}> {
-    return this.call("${toolName}", args);
+    return this.call("${toolInfo.originalName}", args);
   }`,
   };
 }
@@ -431,7 +439,7 @@ export class ${clientName} implements ${serverName} {
     const {
       privateKey,
       relays = ${relays ? JSON.stringify(relays) : `["wss://relay.contextvm.org"]`},
-      signer = new PrivateKeySigner(privateKey || ""}),
+      signer = new PrivateKeySigner(privateKey || ""),
       relayHandler = new ApplesauceRelayPool(relays),
       ...rest
     } = options;

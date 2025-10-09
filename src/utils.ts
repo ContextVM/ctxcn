@@ -10,10 +10,22 @@ export const toPascalCase = (s: string): string => {
   // Replace forward slashes with hyphens to handle names like 'example-servers/everything'
   const normalized = s.replace(/\//g, "-");
 
-  // Convert to camelCase first, then capitalize the first letter
-  const camelCased = normalized
-    .toLowerCase()
-    .replace(/([-_ ]\w)/g, (g) => (g ? g.charAt(1).toUpperCase() : ""));
+  // Check if the string already contains separators
+  const hasSeparators = /[-_ ]/.test(normalized);
 
-  return camelCased.charAt(0).toUpperCase() + camelCased.slice(1);
+  if (hasSeparators) {
+    // Handle strings with separators by splitting and capitalizing each part
+    const parts = normalized.split(/[-_ ]+/);
+
+    const pascalCased = parts
+      .filter((part) => part.length > 0)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join("");
+
+    return pascalCased;
+  } else {
+    // For strings without separators, just capitalize the first letter
+    // and preserve the rest of the string as is
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
 };
