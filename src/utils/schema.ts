@@ -197,13 +197,27 @@ export async function generateTypeFromSchema(
     return `export type ${typeName} = ${sanitizedSchema ? "any" : "never"};`;
   }
 
+  // Check if the schema is an empty object (no properties)
+  const schemaObj = sanitizedSchema as any;
+  const isEmptyObjectSchema =
+    schemaObj.type === "object" &&
+    (!schemaObj.properties || Object.keys(schemaObj.properties).length === 0);
+
+  if (isEmptyObjectSchema) {
+    // For empty object schemas, use a type alias to Record<string, unknown>
+    // This ensures full compatibility while being semantically clear
+    return `export type ${typeName} = Record<string, unknown>;\n`;
+  }
+
   // Resolve internal $ref references before compilation
   const resolvedSchema = resolveSchemaRefs(sanitizedSchema);
 
-  return await compile(resolvedSchema, typeName, {
+  const typeDefinition = await compile(resolvedSchema, typeName, {
     bannerComment: "",
     additionalProperties: false,
   });
+
+  return typeDefinition;
 }
 
 export async function generateClientCode(
@@ -215,15 +229,22 @@ export async function generateClientCode(
 ): Promise<string> {
   const classMethods: string[] = [];
   const serverTypeMethods: string[] = [];
+  const typeDefinitions: string[] = [];
 
   for (const tool of toolListResult.tools) {
-    const { methodDefinitions, serverMethod } = await generateToolMethods(
-      tool,
-      serverName,
-    );
+    const { methodDefinitions, serverMethod, inputType, outputType } =
+      await generateToolMethods(tool, serverName);
 
     classMethods.push(methodDefinitions.classMethod);
     serverTypeMethods.push(serverMethod);
+
+    // Add type definitions to be placed at the top of the file
+    if (inputType) {
+      typeDefinitions.push(inputType);
+    }
+    if (outputType) {
+      typeDefinitions.push(outputType);
+    }
   }
 
   const clientName = `${serverName}Client`;
@@ -237,6 +258,7 @@ export async function generateClientCode(
     genericCallMethod,
     classMethods,
     serverName,
+    typeDefinitions,
     privateKey,
     relays,
   );
@@ -252,7 +274,12 @@ interface ToolInfo {
 async function generateToolMethods(
   tool: any,
   serverName: string,
-): Promise<{ methodDefinitions: any; serverMethod: string }> {
+): Promise<{
+  methodDefinitions: any;
+  serverMethod: string;
+  inputType?: string;
+  outputType?: string;
+}> {
   const toolInfo: ToolInfo = {
     originalName: tool.name,
     pascalName: toPascalCase(tool.name),
@@ -260,7 +287,7 @@ async function generateToolMethods(
     outputTypeName: `${toPascalCase(tool.name)}Output`,
   };
 
-  // Generate types temporarily to extract inline definitions
+  // Generate types to be used in the client
   const [inputType, outputType] = await Promise.all([
     generateTypeFromSchema(tool.inputSchema, toolInfo.inputTypeName),
     generateTypeFromSchema(tool.outputSchema, toolInfo.outputTypeName),
@@ -273,8 +300,12 @@ async function generateToolMethods(
   // Extract properties from schema for individual parameters
   const inputProperties = extractSchemaProperties(tool.inputSchema);
 
-  // Generate JSDoc comment with the actual type shape
-  const jsDocComment = generateJSDoc(tool, inputProperties, outputInlineType);
+  // Generate JSDoc comment with the named type
+  const jsDocComment = generateJSDoc(
+    tool,
+    inputProperties,
+    toolInfo.outputTypeName,
+  );
 
   // Generate method with individual parameters for better developer experience
   const methodDefinitions =
@@ -282,29 +313,29 @@ async function generateToolMethods(
       ? generateMethodWithIndividualParams(
           toolInfo,
           inputProperties,
-          outputInlineType,
+          toolInfo.outputTypeName, // Use named type instead of inline type
           jsDocComment,
         )
       : generateMethodWithObjectParam(
           toolInfo,
-          inputInlineType,
-          outputInlineType,
+          toolInfo.inputTypeName, // Use named type instead of inline type
+          toolInfo.outputTypeName, // Use named type instead of inline type
           jsDocComment,
         );
 
   // Add corresponding method signature to server type
   const serverMethod =
     inputProperties.length > 0
-      ? `  ${toolInfo.pascalName}: (${methodDefinitions.parameters}) => Promise<${outputInlineType}>;`
-      : `  ${toolInfo.pascalName}: (args: ${inputInlineType}) => Promise<${outputInlineType}>;`;
+      ? `  ${toolInfo.pascalName}: (${methodDefinitions.parameters}) => Promise<${toolInfo.outputTypeName}>;`
+      : `  ${toolInfo.pascalName}: (args: ${toolInfo.inputTypeName}) => Promise<${toolInfo.outputTypeName}>;`;
 
-  return { methodDefinitions, serverMethod };
+  return { methodDefinitions, serverMethod, inputType, outputType };
 }
 
 function generateJSDoc(
   tool: any,
   inputProperties: Array<{ name: string; type: string; required: boolean }>,
-  outputInlineType: string,
+  outputTypeName: string,
 ): string {
   const lines: string[] = [];
 
@@ -337,45 +368,12 @@ function generateJSDoc(
     }
   }
 
-  // Add return type description with the actual type shape
+  // Add return type description with the named type
   const outputSchema = tool.outputSchema;
   const returnDescription =
     outputSchema?.description || `The result of the ${tool.name} operation`;
 
-  // Format the return type for JSDoc - use the actual inline type
-  if (outputInlineType.includes("\n")) {
-    // For multi-line types with JSDoc comments, we need to clean them up
-    // Remove inline JSDoc comments and just keep the type structure
-    const cleanedType = outputInlineType
-      .split("\n")
-      .map((line) => {
-        const trimmed = line.trim();
-        // Remove JSDoc comment lines
-        if (
-          trimmed.startsWith("/**") ||
-          trimmed.startsWith("*") ||
-          trimmed.endsWith("*/")
-        ) {
-          return "";
-        }
-        return trimmed;
-      })
-      .filter((line) => line && !line.startsWith("*"))
-      .join(" ");
-
-    // If the cleaned type is too long or complex, use a generic type
-    if (cleanedType.length > 100) {
-      lines.push(`   * @returns {Promise<object>} ${returnDescription}`);
-    } else {
-      lines.push(
-        `   * @returns {Promise<${cleanedType}>} ${returnDescription}`,
-      );
-    }
-  } else {
-    lines.push(
-      `   * @returns {Promise<${outputInlineType}>} ${returnDescription}`,
-    );
-  }
+  lines.push(`   * @returns {Promise<${outputTypeName}>} ${returnDescription}`);
 
   return `  /**\n${lines.join("\n")}\n   */`;
 }
@@ -414,7 +412,7 @@ function generateParameterDescription(
 function generateMethodWithIndividualParams(
   toolInfo: ToolInfo,
   properties: Array<{ name: string; type: string; required: boolean }>,
-  outputType: string,
+  outputTypeName: string,
   jsDocComment: string,
 ) {
   const parameters = properties
@@ -427,7 +425,7 @@ function generateMethodWithIndividualParams(
     classMethod: `  ${jsDocComment}
   async ${toolInfo.pascalName}(
     ${parameters}
-  ): Promise<${outputType}> {
+  ): Promise<${outputTypeName}> {
     return this.call("${toolInfo.originalName}", { ${argsObject} });
   }`,
   };
@@ -435,16 +433,16 @@ function generateMethodWithIndividualParams(
 
 function generateMethodWithObjectParam(
   toolInfo: ToolInfo,
-  inputType: string,
-  outputType: string,
+  inputTypeName: string,
+  outputTypeName: string,
   jsDocComment: string,
 ) {
   return {
-    parameters: `args: ${inputType}`,
+    parameters: `args: ${inputTypeName}`,
     classMethod: `  ${jsDocComment}
   async ${toolInfo.pascalName}(
-    args: ${inputType}
-  ): Promise<${outputType}> {
+    args: ${inputTypeName}
+  ): Promise<${outputTypeName}> {
     return this.call("${toolInfo.originalName}", args);
   }`,
   };
@@ -479,6 +477,7 @@ function assembleClientCode(
   genericCallMethod: string,
   classMethods: string[],
   serverName: string,
+  typeDefinitions: string[],
   privateKey?: string,
   relays?: string[],
 ): string {
@@ -490,6 +489,8 @@ import {
   PrivateKeySigner,
   ApplesauceRelayPool,
 } from "@contextvm/sdk";
+
+${typeDefinitions.join("\n\n")}
 
 ${serverType}
 
@@ -536,5 +537,16 @@ ${genericCallMethod}
 
 ${classMethods.join("\n\n")}
 }
+
+/**
+ * Default singleton instance of ${clientName}.
+ * This instance uses the default configuration and can be used directly
+ * without creating a new instance.
+ *
+ * @example
+ * import { client } from './${clientName}';
+ * const result = await client.SomeMethod();
+ */
+export const client = new ${clientName}();
 `;
 }

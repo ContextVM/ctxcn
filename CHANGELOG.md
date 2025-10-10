@@ -1,5 +1,17 @@
 # @contextvm/ctxcn
 
+## 1.0.8
+
+### Patch Changes
+
+- refactor(utils): improve client code generation with named types and singleton instance
+
+- Replace inline type definitions with named types for better maintainability
+- Add handling for empty object schemas using Record<string, unknown>
+- Generate type definitions at the top of client files for better organization
+- Update JSDoc comments to reference named types instead of inline types
+- Add singleton client instance for convenience with default configuration
+- Refactor method generation to use named input/output types consistently
 ## 1.0.7
 
 ### Patch Changes

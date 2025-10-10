@@ -125,6 +125,25 @@ The generated clients use the following order of precedence for private keys:
 
 Here is an example of how to use the generated client:
 
+### Using the Singleton Instance (Recommended)
+
+The generated client exports a singleton instance for convenience:
+
+```typescript
+import { client } from "./src/ctxcn/AdditionClient.ts";
+
+// The singleton uses the default configuration
+const result = await client.add(5, 10);
+
+console.log(result.result); // 15
+
+await client.disconnect();
+```
+
+### Creating a Custom Instance
+
+You can also create your own instance with custom configuration:
+
 ```typescript
 import { AdditionClient } from "./src/ctxcn/AdditionClient.ts";
 
@@ -139,7 +158,9 @@ console.log(result.result); // 15
 await mcpClient.disconnect();
 ```
 
-You can also override the private key and relays when creating a client instance:
+### Override Configuration
+
+You can override the private key and relays when creating a client instance:
 
 ```typescript
 import { AdditionClient } from "./src/ctxcn/AdditionClient.ts";
