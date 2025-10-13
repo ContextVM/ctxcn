@@ -108,6 +108,39 @@ export function extractInlineType(typeDefinition: string): string {
   return "{}";
 }
 
+/**
+ * Extract individual type definitions from generated code.
+ * Returns an array of objects containing type name and full definition.
+ */
+function extractIndividualTypes(
+  typeDefinition: string,
+): Array<{ name: string; definition: string }> {
+  const types: Array<{ name: string; definition: string }> = [];
+
+  // This regex captures complete type or interface definitions
+  const typeRegex =
+    /export\s+(type|interface)\s+(\w+)[\s\S]*?(?=export\s+(?:type|interface)|\s*$)/g;
+
+  let match;
+  while ((match = typeRegex.exec(typeDefinition)) !== null) {
+    const typeName = match[2];
+    const fullDefinition = match[0].trim();
+    types.push({ name: typeName, definition: fullDefinition });
+  }
+
+  return types;
+}
+
+/**
+ * Normalize a type definition for comparison by removing whitespace variations.
+ */
+function normalizeTypeDefinition(definition: string): string {
+  return definition
+    .replace(/\s+/g, " ") // Collapse multiple spaces
+    .replace(/\s*([{}:;,])\s*/g, "$1") // Remove spaces around punctuation
+    .trim();
+}
+
 function formatInlineType(typeShape: string): string {
   // If it's an object type, clean up the formatting
   if (typeShape.startsWith("{") && typeShape.endsWith("}")) {
@@ -229,7 +262,12 @@ export async function generateClientCode(
 ): Promise<string> {
   const classMethods: string[] = [];
   const serverTypeMethods: string[] = [];
-  const typeDefinitions: string[] = [];
+
+  // Track unique types by name to avoid duplicates
+  const typesByName = new Map<
+    string,
+    { name: string; definition: string; normalizedDef: string }
+  >();
 
   for (const tool of toolListResult.tools) {
     const { methodDefinitions, serverMethod, inputType, outputType } =
@@ -238,14 +276,23 @@ export async function generateClientCode(
     classMethods.push(methodDefinitions.classMethod);
     serverTypeMethods.push(serverMethod);
 
-    // Add type definitions to be placed at the top of the file
-    if (inputType) {
-      typeDefinitions.push(inputType);
-    }
-    if (outputType) {
-      typeDefinitions.push(outputType);
+    // Process and deduplicate types
+    for (const typeBlock of [inputType, outputType].filter(Boolean)) {
+      const types = extractIndividualTypes(typeBlock!);
+
+      for (const type of types) {
+        const normalizedDef = normalizeTypeDefinition(type.definition);
+
+        // Only add types that haven't been seen before (by name)
+        // If a type with the same name but different definition exists, keep the first one
+        if (!typesByName.has(type.name)) {
+          typesByName.set(type.name, { ...type, normalizedDef });
+        }
+      }
     }
   }
+
+  const uniqueTypes = Array.from(typesByName.values()).map((t) => t.definition);
 
   const clientName = `${serverName}Client`;
   const serverType = generateServerType(serverName, serverTypeMethods);
@@ -258,7 +305,7 @@ export async function generateClientCode(
     genericCallMethod,
     classMethods,
     serverName,
-    typeDefinitions,
+    uniqueTypes,
     privateKey,
     relays,
   );
@@ -481,6 +528,9 @@ function assembleClientCode(
   privateKey?: string,
   relays?: string[],
 ): string {
+  // Convert server name to camelCase for the singleton instance
+  const instanceName = serverName.charAt(0).toLowerCase() + serverName.slice(1);
+
   return `import { Client } from "@modelcontextprotocol/sdk/client";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
@@ -544,9 +594,9 @@ ${classMethods.join("\n\n")}
  * without creating a new instance.
  *
  * @example
- * import { client } from './${clientName}';
- * const result = await client.SomeMethod();
+ * import { ${instanceName} } from './${clientName}';
+ * const result = await ${instanceName}.SomeMethod();
  */
-export const client = new ${clientName}();
+export const ${instanceName} = new ${clientName}();
 `;
 }

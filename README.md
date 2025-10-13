@@ -127,17 +127,17 @@ Here is an example of how to use the generated client:
 
 ### Using the Singleton Instance (Recommended)
 
-The generated client exports a singleton instance for convenience:
+The generated client exports a singleton instance for convenience. The instance is named using camelCase of the server name to avoid collisions:
 
 ```typescript
-import { client } from "./src/ctxcn/AdditionClient.ts";
+import { addition } from "./src/ctxcn/AdditionClient.ts";
 
 // The singleton uses the default configuration
-const result = await client.add(5, 10);
+const result = await addition.add(5, 10);
 
 console.log(result.result); // 15
 
-await client.disconnect();
+await addition.disconnect();
 ```
 
 ### Creating a Custom Instance

@@ -34,6 +34,8 @@ export async function createCvmConnection(
     await client.connect(transport);
     const serverDetails = client.getServerVersion();
     const toolListResult = await client.listTools();
+
+    console.log(JSON.stringify(toolListResult));
     await transport.close();
 
     return {
