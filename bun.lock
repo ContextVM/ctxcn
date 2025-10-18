@@ -4,16 +4,16 @@
     "": {
       "name": "ctxcn",
       "dependencies": {
-        "@contextvm/sdk": "^0.1.29",
-        "@modelcontextprotocol/sdk": "^1.18.2",
+        "@contextvm/sdk": "^0.1.32",
+        "@modelcontextprotocol/sdk": "^1.20.0",
         "json-schema-to-typescript": "^15.0.4",
       },
       "devDependencies": {
         "@changesets/cli": "^2.29.7",
         "@types/bun": "latest",
-        "@types/node": "^20.0.0",
+        "@types/node": "^20.19.21",
         "prettier": "^3.6.2",
-        "typescript": "^5.0.0",
+        "typescript": "^5.9.3",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -59,7 +59,7 @@
 
     "@changesets/write": ["@changesets/write@0.4.0", "", { "dependencies": { "@changesets/types": "^6.1.0", "fs-extra": "^7.0.1", "human-id": "^4.1.1", "prettier": "^2.7.1" } }, "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q=="],
 
-    "@contextvm/sdk": ["@contextvm/sdk@0.1.31", "", { "dependencies": { "@modelcontextprotocol/sdk": "^1.20.0", "applesauce-relay": "^4.0.0", "nostr-tools": "^2.17.0", "pino": "^10.0.0", "pino-pretty": "^13.1.2" }, "peerDependencies": { "typescript": "^5.9.2" } }, "sha512-S/bLzEPuUeQqvMQFieSu7ObPbbEMmVRUlfgkpotgJrsW+/q9djBvlDJXB4Oa/7kn2oMit5aOzsd5Hhfo/saHFw=="],
+    "@contextvm/sdk": ["@contextvm/sdk@0.1.32", "", { "dependencies": { "@modelcontextprotocol/sdk": "^1.20.0", "applesauce-relay": "^4.0.0", "nostr-tools": "^2.17.0", "pino": "^10.0.0", "pino-pretty": "^13.1.2" }, "peerDependencies": { "typescript": "^5.9.2" } }, "sha512-y7NEiKmFPJAUP41F4+RkWCa0RjxdGcIx4hSz53ilb8QuugwlGL7Ho8tudB/oifUzxCn1UUx5SVKTYkarrCAu7w=="],
 
     "@inquirer/external-editor": ["@inquirer/external-editor@1.0.2", "", { "dependencies": { "chardet": "^2.1.0", "iconv-lite": "^0.7.0" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-yy9cOoBnx58TlsPrIxauKIFQTiyH+0MK4e97y4sV9ERbI+zDxw7i2hxHLCIEGIE/8PPvDxGhgzIOTSOWcs6/MQ=="],
 

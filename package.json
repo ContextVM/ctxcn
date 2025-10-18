@@ -1,6 +1,6 @@
 {
   "name": "@contextvm/ctxcn",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "A command-line utility inspired by shadcn that streamlines the integration of ContextVM (CVM) servers into your TypeScript projects",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -44,7 +44,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@contextvm/sdk": "^0.1.31",
+    "@contextvm/sdk": "^0.1.32",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "json-schema-to-typescript": "^15.0.4"
   }
