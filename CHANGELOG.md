@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.11
+
+### Patch Changes
+
+- chore: bump sdk version
+
 ## 1.0.10
 
 ### Patch Changes
