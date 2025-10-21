@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "./src/env.js"; // Must be the first import to set up the environment
 import { handleInit } from "./src/commands/init.js";
 import { handleAdd } from "./src/commands/add.js";
 import { handleUpdate } from "./src/commands/update.js";

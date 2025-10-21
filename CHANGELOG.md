@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.12
+
+### Patch Changes
+
+- docs(logging): add logging configuration documentation
+
 ## 1.0.11
 
 ### Patch Changes

@@ -43,7 +43,7 @@ For a live demonstration, check out this short video where we explore ContextVM 
 
 [![Watch the demo](https://blossom.primal.net/db5731558295a9c919327416b8a48e2e189e4ef6603cef636c92f67428a2ae6e.mp4)](https://blossom.primal.net/db5731558295a9c919327416b8a48e2e189e4ef6603cef636c92f67428a2ae6e.mp4)
 
-*(You can also view the [original note here](https://nostr.at/nevent1qvzqqqqqqypzq6ehsrhjjuh885mshp9ru50842dwxjl5z2fcmnaan30k8v3pg9kgqy88wumn8ghj7mn0wvhxcmmv9uq32amnwvaz7tmjv4kxz7fwv3sk6atn9e5k7tcqyrk6hlekvheur59n22ts95vlg9g9d9rm75uk5vk2ksyqj9k73t7fwaa38y4).)*
+_(You can also view the [original note here](https://nostr.at/nevent1qvzqqqqqqypzq6ehsrhjjuh885mshp9ru50842dwxjl5z2fcmnaan30k8v3pg9kgqy88wumn8ghj7mn0wvhxcmmv9uq32amnwvaz7tmjv4kxz7fwv3sk6atn9e5k7tcqyrk6hlekvheur59n22ts95vlg9g9d9rm75uk5vk2ksyqj9k73t7fwaa38y4).)_
 
 The complexities of the underlying Nostr transport protocol, message signing, and relay management are all handled for you, abstracted away behind a clean and intuitive API.
 
@@ -62,7 +62,7 @@ console.log(result.result); // 15
 import { AdditionClient } from "./src/ctxcn/AdditionClient";
 const customClient = new AdditionClient({
   privateKey: process.env.MY_PRIVATE_KEY,
-  relays: ["wss://my-custom-relay.com"]
+  relays: ["wss://my-custom-relay.com"],
 });
 ```
 

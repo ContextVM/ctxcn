@@ -115,6 +115,30 @@ For better security, you can use environment variables instead of storing privat
 export CTXCN_PRIVATE_KEY="your-private-key-here"
 ```
 
+### Logging
+
+The CLI sets the ContextVM SDK logger to a minimal level by default to reduce noisy output during operations (for example when running [`src/commands/add.ts`](src/commands/add.ts:1)). By default the CLI will set `LOG_LEVEL=error` unless you explicitly provide a different value.
+
+You can override the logging behavior with the following environment variables supported by the SDK:
+
+- `LOG_LEVEL` — Minimum log level: `debug`, `info`, `warn`, `error`. Default used by the CLI: `error`.
+- `LOG_DESTINATION` — Destination for logs: `stderr` (default), `stdout`, or `file`.
+- `LOG_FILE` — Path to the log file when `LOG_DESTINATION=file`.
+- `LOG_ENABLED` — Enable or disable logging: `true` (default) or `false`.
+
+Examples:
+
+```bash
+# Run the add command with verbose debug logs
+LOG_LEVEL=debug npx @contextvm/ctxcn add <pubkey>
+
+# Log to a file instead of the console
+LOG_DESTINATION=file LOG_FILE=./app.log npx @contextvm/ctxcn add <pubkey>
+
+# Disable SDK logging entirely
+LOG_ENABLED=false npx @contextvm/ctxcn add <pubkey>
+```
+
 The generated clients use the following order of precedence for private keys:
 
 1. Private key passed directly in the constructor options
