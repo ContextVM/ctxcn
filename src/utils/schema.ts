@@ -559,14 +559,15 @@ export class ${clientName} implements ${serverName} {
 
     const {
       privateKey,
-      relays = ${relays ? JSON.stringify(relays) : `["wss://relay.contextvm.org"]`},
+      relays = ["ws://localhost:10547"],
       signer = new PrivateKeySigner(privateKey || ""),
       relayHandler = new ApplesauceRelayPool(relays),
+ 			serverPubkey,
       ...rest
     } = options;
 
     this.transport = new NostrClientTransport({
-      serverPubkey: ${clientName}.SERVER_PUBKEY,
+      serverPubkey: serverPubkey || RelatrClient.SERVER_PUBKEY,
       signer,
       relayHandler,
       isStateless: true,

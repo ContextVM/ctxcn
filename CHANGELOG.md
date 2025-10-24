@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.13
+
+### Patch Changes
+
+- refactor(schema): add serverpubkey to the constructor options
+
 ## 1.0.12
 
 ### Patch Changes
