@@ -1,6 +1,7 @@
 import type { JSONSchema } from "json-schema-to-typescript";
 import { compile } from "json-schema-to-typescript";
 import { toPascalCase } from "../utils.js";
+import { DEFAULT_CONFIG } from "../config.js";
 
 export function sanitizeSchema(schema: unknown): object | boolean {
   // A valid JSON Schema is a boolean or an object.
@@ -531,6 +532,11 @@ function assembleClientCode(
   // Convert server name to camelCase for the singleton instance
   const instanceName = serverName.charAt(0).toLowerCase() + serverName.slice(1);
 
+  // Use provided relays or default to the standard ContextVM relay
+  const parsedRelays =
+    relays && relays.length > 0 ? relays : DEFAULT_CONFIG.relays;
+  const relayArrayString = parsedRelays.map((relay) => `"${relay}"`).join(", ");
+
   return `import { Client } from "@modelcontextprotocol/sdk/client";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
@@ -546,6 +552,7 @@ ${serverType}
 
 export class ${clientName} implements ${serverName} {
   static readonly SERVER_PUBKEY = "${pubkey}";
+  static readonly DEFAULT_RELAYS = [${relayArrayString}];
   private client: Client;
   private transport: Transport;
 
@@ -557,10 +564,15 @@ export class ${clientName} implements ${serverName} {
       version: "1.0.0",
     });
 
+    // Private key precedence: constructor options > environment variable > config file
+    const resolvedPrivateKey = options.privateKey ||
+      process.env.CTXCN_PRIVATE_KEY ||
+      "${privateKey || ""}";
+
     const {
-      privateKey,
-      relays = ["ws://localhost:10547"],
-      signer = new PrivateKeySigner(privateKey || ""),
+      privateKey: _,
+      relays = ${clientName}.DEFAULT_RELAYS,
+      signer = new PrivateKeySigner(resolvedPrivateKey),
       relayHandler = new ApplesauceRelayPool(relays),
  			serverPubkey,
       ...rest

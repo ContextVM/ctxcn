@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.15
+
+### Patch Changes
+
+- feat(schema): add relay configuration and private key precedence
+
 ## 1.0.14
 
 ### Patch Changes

@@ -267,3 +267,48 @@ test("generateClientCode handles schemas with $ref references", async () => {
   expect(clientCode).toContain("tags: string[];");
   expect(clientCode).toContain("sig: string;");
 });
+
+test("generateClientCode includes proper relay configuration and private key precedence", async () => {
+  const pubkey = "test-pubkey";
+  const serverName = "TestServer";
+  const customRelays = ["wss://custom-relay1.org", "wss://custom-relay2.org"];
+  const configPrivateKey = "config-private-key-123";
+
+  // Test 1: No relays provided (should use defaults)
+  const clientCode1 = await generateClientCode(
+    pubkey,
+    mockToolListResult,
+    serverName,
+  );
+
+  // Should include default relay configuration
+  expect(clientCode1).toContain(
+    'DEFAULT_RELAYS = ["wss://relay.contextvm.org"]',
+  );
+  expect(clientCode1).toContain("process.env.CTXCN_PRIVATE_KEY");
+
+  // Test 2: Custom relays provided
+  const clientCode2 = await generateClientCode(
+    pubkey,
+    mockToolListResult,
+    serverName,
+    undefined,
+    customRelays,
+  );
+
+  // Should include custom relays
+  expect(clientCode2).toContain(
+    'DEFAULT_RELAYS = ["wss://custom-relay1.org", "wss://custom-relay2.org"]',
+  );
+
+  // Test 3: Private key from config
+  const clientCode3 = await generateClientCode(
+    pubkey,
+    mockToolListResult,
+    serverName,
+    configPrivateKey,
+  );
+
+  // Should include config private key in the precedence chain
+  expect(clientCode3).toContain('"config-private-key-123"');
+});
