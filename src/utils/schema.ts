@@ -567,7 +567,7 @@ export class ${clientName} implements ${serverName} {
     } = options;
 
     this.transport = new NostrClientTransport({
-      serverPubkey: serverPubkey || RelatrClient.SERVER_PUBKEY,
+      serverPubkey: serverPubkey || ${clientName}.SERVER_PUBKEY,
       signer,
       relayHandler,
       isStateless: true,
