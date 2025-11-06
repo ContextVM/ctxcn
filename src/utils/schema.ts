@@ -564,9 +564,8 @@ export class ${clientName} implements ${serverName} {
       version: "1.0.0",
     });
 
-    // Private key precedence: constructor options > environment variable > config file
+    // Private key precedence: constructor options > config file
     const resolvedPrivateKey = options.privateKey ||
-      process.env.CTXCN_PRIVATE_KEY ||
       "${privateKey || ""}";
 
     const {

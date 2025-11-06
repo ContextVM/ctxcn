@@ -285,7 +285,6 @@ test("generateClientCode includes proper relay configuration and private key pre
   expect(clientCode1).toContain(
     'DEFAULT_RELAYS = ["wss://relay.contextvm.org"]',
   );
-  expect(clientCode1).toContain("process.env.CTXCN_PRIVATE_KEY");
 
   // Test 2: Custom relays provided
   const clientCode2 = await generateClientCode(

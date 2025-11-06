@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.16
+
+### Patch Changes
+
+- refactor(schema): remove environment variable private key support
+
 ## 1.0.15
 
 ### Patch Changes
