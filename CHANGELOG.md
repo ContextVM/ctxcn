@@ -1,5 +1,11 @@
 # @contextvm/ctxcn
 
+## 1.0.17
+
+### Patch Changes
+
+- build(deps): update @contextvm/sdk to v0.1.38 and remove redundant @modelcontextprotocol/sdk dependency
+
 ## 1.0.16
 
 ### Patch Changes
